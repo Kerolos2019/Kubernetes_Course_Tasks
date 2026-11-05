@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+  namespace: webapp
+  labels:
+    app: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web            # must match the Pod template label below
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      shareProcessNamespace: true   # all containers in the Pod see each other's processes
+      # no "volumes:" section on purpose
+
+      initContainers:
+        - name: init-done
+          image: busybox:1.36
+          # STEP 5 (break it): replace the line below with
+          #   command: ["sh", "-c", "echo 'init failed'; exit 1"]
+          command: ["sh", "-c", "echo done"]
+
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "<h1>hello in MLOPS MENA COMMUNITY : $(date '+%Y-%m-%d %H:%M:%S')</h1>" > /usr/share/nginx/html/index.html
+              exec nginx -g 'daemon off;'
+
+        - name: time-updater
+          image: busybox:1.36
+          securityContext:
+            capabilities:
+              add: ["SYS_PTRACE"]   # lets this container reach into /proc/<nginx-pid>/root
+          command: ["sh", "-c"]
+          args:
+            - |
+              while true; do
+                PID=$(pgrep -o nginx)
+                if [ -n "$PID" ]; then
+                  echo "<h1>hello in MLOPS MENA COMMUNITY : $(date '+%Y-%m-%d %H:%M:%S')</h1>" \
+                    > /proc/$PID/root/usr/share/nginx/html/index.html
+                fi
+                sleep 5
+              done
