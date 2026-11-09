@@ -1,0 +1,3 @@
+[mysqld]
+# Do not resolve client host names (faster connections inside Kubernetes)
+skip_name_resolve = ON

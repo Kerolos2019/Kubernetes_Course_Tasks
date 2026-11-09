@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K8s Labs - WebApp</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">&#9784;</div>
+    <h1 id="title">WebApp</h1>
+    <p class="subtitle">FastAPI + MySQL on Kubernetes, behind an Ingress.</p>
+  </header>
+
+  <main>
+    <section class="card highlight">
+      <h2>Who served this request?</h2>
+      <table class="info">
+        <tr><td>App Pod</td><td id="pod">loading...</td></tr>
+        <tr><td>Image version</td><td id="version">loading...</td></tr>
+        <tr><td>Environment (ConfigMap)</td><td id="environment">loading...</td></tr>
+        <tr><td>MySQL server</td><td id="db">loading...</td></tr>
+      </table>
+      <p class="note">Refresh the page: the app Pod can change (load balancing by the Service).</p>
+    </section>
+
+    <section class="card">
+      <h2>Guestbook</h2>
+      <form id="message-form">
+        <input id="author" placeholder="Your name" maxlength="50" required>
+        <input id="content" placeholder="Your message" maxlength="255" required>
+        <button type="submit">Send</button>
+      </form>
+      <p class="note" id="form-status"></p>
+      <ul id="messages"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>K8s Labs &middot; namespace <code>webapp-stack</code></p>
+  </footer>
+
+  <script>
+    function describe(db) {
+      if (!db) return "-";
+      if (db.error) return "error: " + db.error;
+      return db.server;
+    }
+
+    async function loadInfo() {
+      const info = await (await fetch("api/info")).json();
+      document.getElementById("title").textContent = info.title;
+      document.getElementById("pod").textContent = info.pod;
+      document.getElementById("version").textContent = info.version;
+      document.getElementById("environment").textContent = info.environment;
+      document.getElementById("db").textContent = describe(info.db);
+    }
+
+    async function loadMessages() {
+      const list = document.getElementById("messages");
+      const res = await fetch("api/messages");
+      if (!res.ok) { list.innerHTML = "<li>Database not ready yet.</li>"; return; }
+      const data = await res.json();
+      list.innerHTML = "";
+      for (const m of data.messages) {
+        const li = document.createElement("li");
+        li.textContent = m.author + ": " + m.content;
+        list.appendChild(li);
+      }
+    }
+
+    document.getElementById("message-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const status = document.getElementById("form-status");
+      const res = await fetch("api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author: document.getElementById("author").value,
+          content: document.getElementById("content").value,
+        }),
+      });
+      const data = await res.json();
+      status.textContent = res.ok ? "Saved on " + data.written_to : "Error: " + data.detail;
+      document.getElementById("content").value = "";
+      loadMessages();
+    });
+
+    loadInfo();
+    loadMessages();
+  </script>
+</body>
+</html>

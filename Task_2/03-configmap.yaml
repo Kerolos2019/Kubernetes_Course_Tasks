@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-config
+  namespace: webapp-stack
+data:
+  APP_TITLE: "hello in MLOPS MENA COMMUNITY"
+  APP_ENV: "dev"
+  MYSQL_HOST: "mysql"        # the MySQL Service name = its DNS name inside the namespace
+  MYSQL_PORT: "3306"         # overrides the MYSQL_PORT=tcp://... variable Kubernetes injects for the Service
+  MYSQL_DATABASE: "webapp"

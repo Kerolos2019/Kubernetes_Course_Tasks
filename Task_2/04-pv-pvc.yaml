@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv               # cluster-wide: no namespace
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /data/webapp-mysql
+    type: DirectoryOrCreate
+  nodeAffinity:                # the folder only exists on this node, so pin every user of the PV here
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [node-01]  # course: minikube-m02
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: webapp-stack
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual
+  volumeName: mysql-pv
+  resources:
+    requests:
+      storage: 2Gi
